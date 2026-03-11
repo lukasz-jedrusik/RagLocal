@@ -1,4 +1,5 @@
 using System.Net.Http.Json;
+using Microsoft.Extensions.Configuration;
 using Rag.Services.Backend.Application.Interfaces.Services;
 using Rag.Services.Backend.Domain.Models;
 
@@ -8,11 +9,12 @@ namespace Rag.Services.Backend.Infrastructure.Services
     {
         private readonly HttpClient _http;
 
-        public OllamaService()
+        public OllamaService(IConfiguration configuration)
         {
+            var serverUrl = configuration["Ollama:ServerUrl"] ?? "http://localhost:11434";
             _http = new HttpClient
             {
-                BaseAddress = new Uri("http://localhost:11434")
+                BaseAddress = new Uri(serverUrl)
             };
         }
 

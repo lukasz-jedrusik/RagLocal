@@ -21,7 +21,7 @@ namespace Rag.Services.Backend.Application.Commands.IngestFiles
             await _backgroundTaskQueue.QueueBackgroundWorkItemAsync(async token =>
             {
                 using var scope = _serviceScopeFactory.CreateScope();
-                var qdrantStore = scope.ServiceProvider.GetRequiredService<IQdrantStore>();
+                var qdrantStore = scope.ServiceProvider.GetRequiredService<IQdrantService>();
                 var ollamaService = scope.ServiceProvider.GetRequiredService<IOllamaService>();
 
                 _logger.LogInformation("file ingestion process started");

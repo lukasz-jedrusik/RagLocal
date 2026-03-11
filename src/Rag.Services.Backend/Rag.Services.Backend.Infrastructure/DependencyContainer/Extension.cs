@@ -2,7 +2,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Rag.Services.Backend.Application.Services;
 using Rag.Services.Backend.Application.Interfaces.Services;
 using Rag.Services.Backend.Infrastructure.Services;
-using Rag.Services.Backend.Infrastructure.Extensions.Qdrant;
 
 namespace Rag.Services.Backend.Infrastructure.DependencyContainer
 {
@@ -14,7 +13,7 @@ namespace Rag.Services.Backend.Infrastructure.DependencyContainer
 
             // Services
             services.AddHttpClient();
-            services.AddScoped<IQdrantStore, QdrantStore>();
+            services.AddScoped<IQdrantService, QdrantService>();
             services.AddScoped<IOllamaService, OllamaService>();
 
             // Queue

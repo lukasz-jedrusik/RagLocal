@@ -1,16 +1,27 @@
 using System.Text;
 using System.Text.Json;
+using Microsoft.Extensions.Configuration;
 using Rag.Services.Backend.Application.Interfaces.Services;
 using Rag.Services.Backend.Domain.Models;
 
-namespace Rag.Services.Backend.Infrastructure.Extensions.Qdrant
+namespace Rag.Services.Backend.Infrastructure.Services
 {
-    public class QdrantStore(IHttpClientFactory httpClientFactory)
-        : IQdrantStore
+    public class QdrantService : IQdrantService
     {
-        private readonly HttpClient _httpClient = httpClientFactory.CreateClient();
-        private readonly string _baseUrl = "http://localhost:6333";
+        private readonly HttpClient _httpClient;
+        private readonly string _baseUrl;
         private readonly string _collection = "docs";
+        
+        private static readonly JsonSerializerOptions JsonOptions = new()
+        {
+            PropertyNameCaseInsensitive = true
+        };
+
+        public QdrantService(IHttpClientFactory httpClientFactory, IConfiguration configuration)
+        {
+            _httpClient = httpClientFactory.CreateClient();
+            _baseUrl = configuration["Qdrant:ServerUrl"];
+        }
 
         public async Task InitAsync()
         {
@@ -39,10 +50,10 @@ namespace Rag.Services.Backend.Infrastructure.Extensions.Qdrant
                     }
                 }
             }
-            catch (HttpRequestException)
+            catch (HttpRequestException ex)
             {
                 // Handle connection errors (e.g., Qdrant not running)
-                throw new Exception("Failed to connect to Qdrant. Please ensure it is running and accessible.");
+                throw new InvalidOperationException("Failed to connect to Qdrant. Please ensure it is running and accessible.", ex);
             }
         }
 
@@ -73,7 +84,7 @@ namespace Rag.Services.Backend.Infrastructure.Extensions.Qdrant
             if (!response.IsSuccessStatusCode)
             {
                 var errorContent = await response.Content.ReadAsStringAsync();
-                throw new Exception($"Failed to add point to Qdrant. Status: {response.StatusCode}, Error: {errorContent}");
+                throw new HttpRequestException($"Failed to add point to Qdrant. Status: {response.StatusCode}, Error: {errorContent}");
             }
         }
 
@@ -93,7 +104,7 @@ namespace Rag.Services.Backend.Infrastructure.Extensions.Qdrant
             response.EnsureSuccessStatusCode();
 
             var responseContent = await response.Content.ReadAsStringAsync();
-            var searchResponse = JsonSerializer.Deserialize<QdrantSearchResponse>(responseContent, JsonConfig.DefaultOptions);
+            var searchResponse = JsonSerializer.Deserialize<QdrantSearchResponse>(responseContent, JsonOptions);
 
             return searchResponse?.Result?.Select(hit => new SearchResult
             {

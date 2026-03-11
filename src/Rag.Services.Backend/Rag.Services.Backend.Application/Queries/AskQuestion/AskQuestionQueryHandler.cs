@@ -4,10 +4,10 @@ using Rag.Services.Backend.Application.Interfaces.Services;
 namespace Rag.Services.Backend.Application.Queries.AskQuestion
 {
     public class AskQuestionQueryHandler(
-        IQdrantStore vectorStore,
+        IQdrantService vectorStore,
         IOllamaService ollama) : IRequestHandler<AskQuestionQuery, string>
     {
-        private readonly IQdrantStore _vectorStore = vectorStore;
+        private readonly IQdrantService _vectorStore = vectorStore;
         private readonly IOllamaService _ollamaService = ollama;
 
         public async Task<string> Handle(

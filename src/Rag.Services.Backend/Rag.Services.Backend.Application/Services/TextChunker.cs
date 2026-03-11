@@ -11,7 +11,7 @@ namespace Rag.Services.Backend.Application.Services
                 var chunk = text.Substring(i, Math.Min(size, text.Length - i));
                 chunks.Add(chunk);
             }
-                
+
             return chunks;
         }
     }
