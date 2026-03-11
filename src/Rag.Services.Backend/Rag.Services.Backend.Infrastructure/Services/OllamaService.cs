@@ -11,7 +11,7 @@ namespace Rag.Services.Backend.Infrastructure.Services
 
         public OllamaService(IConfiguration configuration)
         {
-            var serverUrl = configuration["Ollama:ServerUrl"] ?? "http://localhost:11434";
+            var serverUrl = configuration["Ollama:ServerUrl"];
             _http = new HttpClient
             {
                 BaseAddress = new Uri(serverUrl)
