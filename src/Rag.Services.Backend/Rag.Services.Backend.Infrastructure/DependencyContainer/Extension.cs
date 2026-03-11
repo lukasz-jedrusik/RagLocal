@@ -13,6 +13,8 @@ namespace Rag.Services.Backend.Infrastructure.DependencyContainer
 
             // Services
             services.AddHttpClient();
+            services.AddScoped<IPdfLoaderService, PdfLoaderService>();
+            services.AddScoped<IWordLoaderService, WordLoaderService>();
             services.AddScoped<IQdrantService, QdrantService>();
             services.AddScoped<IOllamaService, OllamaService>();
 
