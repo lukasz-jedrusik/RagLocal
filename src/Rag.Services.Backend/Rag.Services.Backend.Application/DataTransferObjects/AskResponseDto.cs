@@ -1,8 +1,8 @@
 namespace Rag.Services.Backend.Application.DataTransferObjects
 {
-    public class AskRequestDto
+    public class AskResponseDto
     {
-        public string Question { get; set; } = string.Empty;
+        public string Answer { get; set; } = string.Empty;
         public string ConversationId { get; set; } = string.Empty;
     }
 }

@@ -12,11 +12,13 @@ namespace Rag.Services.Backend.Infrastructure.DependencyContainer
             // Repositories
 
             // Services
+            services.AddMemoryCache();
             services.AddHttpClient();
             services.AddScoped<IPdfLoaderService, PdfLoaderService>();
             services.AddScoped<IWordLoaderService, WordLoaderService>();
             services.AddScoped<IQdrantService, QdrantService>();
             services.AddScoped<IOllamaService, OllamaService>();
+            services.AddSingleton<IConversationService, ConversationService>();
 
             // Queue
             services.AddHostedService<QueuedHostedService>();

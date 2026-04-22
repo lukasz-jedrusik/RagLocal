@@ -14,15 +14,19 @@ namespace Rag.Services.Backend.Api.Endpoints
                 "/ask",
                 async ([Required][FromBody] AskRequestDto askRequestDto, IMediator mediator) =>
                 {
-                    var query = new AskQuestionQuery { Question = askRequestDto.Question };
+                    var query = new AskQuestionQuery
+                    {
+                        Question = askRequestDto.Question,
+                        ConversationId = askRequestDto.ConversationId
+                    };
                     var result = await mediator.Send(query);
-                    return Results.Ok(new { Answer = result });
+                    return Results.Ok(result);
                 })
                 .WithName("AskQuestion")
                 .WithTags("Questions")
                 .WithSummary("Ask a question")
-                .WithDescription("Submit a question and get an AI-generated answer")
-                .Produces<object>(StatusCodes.Status200OK)
+                .WithDescription("Submit a question and get an AI-generated answer with conversation context")
+                .Produces<AskResponseDto>(StatusCodes.Status200OK)
                 .Produces(StatusCodes.Status400BadRequest);
         }
     }

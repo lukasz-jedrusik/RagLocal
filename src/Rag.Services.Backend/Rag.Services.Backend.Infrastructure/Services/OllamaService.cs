@@ -44,6 +44,40 @@ namespace Rag.Services.Backend.Infrastructure.Services
             return json.Message.Content;
         }
 
+        public async Task<string> AskWithHistoryAsync(string context, List<ConversationMessage> history, string currentQuestion)
+        {
+            var messages = new List<object>();
+
+            // Add system message with context
+            messages.Add(new { role = "system", content = $"Answer ONLY using this context:\n\n{context}" });
+
+            // Add conversation history
+            foreach (var msg in history)
+            {
+                messages.Add(new { role = msg.Role, content = msg.Content });
+            }
+
+            // Add current question
+            messages.Add(new { role = "user", content = currentQuestion });
+
+            // Create request body
+            var req = new
+            {
+                model = "llama3",
+                messages = messages,
+                stream = false
+            };
+
+            // Send request to Ollama API
+            var res = await _http.PostAsJsonAsync("/api/chat", req);
+
+            // Get response content
+            var json = await res.Content.ReadFromJsonAsync<OllamaResponse>();
+
+            // Return response message content
+            return json.Message.Content;
+        }
+
         public async Task<float[]> CreateAsync(string text)
         {
             var response = await _http.PostAsJsonAsync(
