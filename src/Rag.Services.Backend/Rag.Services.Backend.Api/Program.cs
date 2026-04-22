@@ -6,6 +6,7 @@ using Rag.Services.Backend.Infrastructure.DependencyContainer;
 using Rag.Services.Backend.Infrastructure.Extensions.KeycloakAuth;
 using Rag.Services.Backend.Infrastructure.Extensions.MediatR;
 using Rag.Services.Backend.Infrastructure.Extensions.Swagger;
+using Mapster;
 using NLog.Web;
 
 // Create builder
@@ -25,12 +26,14 @@ builder.Host.UseNLog(new NLogAspNetCoreOptions() { RemoveLoggerFactoryFilter = f
 // Add services
 builder.Services
     .AddCors()
-    .AddAutoMapper(typeof(AutoMapperProfiles))
     .AddEndpointsApiExplorer()
     .AddSwagger()
     .AddKeycloakAuthorization(builder.Configuration)
     .AddMediatR()
     .AddApplication();
+
+// Configure Mapster
+MapsterConfig.Configure();
 
 // Add healtchecks endpoints
 builder.Services.AddHealthChecks();
