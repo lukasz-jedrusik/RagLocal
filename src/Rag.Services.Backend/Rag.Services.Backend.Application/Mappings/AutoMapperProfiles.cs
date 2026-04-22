@@ -6,8 +6,8 @@ namespace Rag.Services.Backend.Application.Mappings
     {
         public static void Configure()
         {
-            // Mapster konfiguracja - dodawaj tutaj custom mappingi jeśli potrzebne
-            // Przykład: 
+            // Mapster configuration  - add custom mappings here if needed
+            // Example: 
             // TypeAdapterConfig<Source, Destination>
             //     .NewConfig()
             //     .Map(dest => dest.PropertyName, src => src.SomeOtherProperty);
