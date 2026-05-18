@@ -6,7 +6,6 @@ using Rag.Services.Backend.Infrastructure.DependencyContainer;
 using Rag.Services.Backend.Infrastructure.Extensions.KeycloakAuth;
 using Rag.Services.Backend.Infrastructure.Extensions.MediatR;
 using Rag.Services.Backend.Infrastructure.Extensions.Swagger;
-using Mapster;
 using NLog.Web;
 
 // Create builder

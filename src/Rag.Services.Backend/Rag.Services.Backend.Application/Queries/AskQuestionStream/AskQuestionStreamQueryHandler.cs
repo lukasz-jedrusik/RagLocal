@@ -1,22 +1,23 @@
+using System.Runtime.CompilerServices;
+using System.Text;
 using MediatR;
-using Rag.Services.Backend.Application.DataTransferObjects;
 using Rag.Services.Backend.Application.Interfaces.Services;
 using Rag.Services.Backend.Domain.Models;
 
-namespace Rag.Services.Backend.Application.Queries.AskQuestion
+namespace Rag.Services.Backend.Application.Queries.AskQuestionStream
 {
-    public class AskQuestionQueryHandler(
+    public class AskQuestionStreamQueryHandler(
         IQdrantService vectorStore,
         IOllamaService ollama,
-        IConversationService conversationService) : IRequestHandler<AskQuestionQuery, AskResponseDto>
+        IConversationService conversationService) : IStreamRequestHandler<AskQuestionStreamQuery, string>
     {
         private readonly IQdrantService _vectorStore = vectorStore;
         private readonly IOllamaService _ollamaService = ollama;
         private readonly IConversationService _conversationService = conversationService;
 
-        public async Task<AskResponseDto> Handle(
-            AskQuestionQuery request,
-            CancellationToken cancellationToken)
+        public async IAsyncEnumerable<string> Handle(
+            AskQuestionStreamQuery request,
+            [EnumeratorCancellation] CancellationToken cancellationToken)
         {
             // Create or retrieve conversation
             string conversationId;
@@ -48,18 +49,22 @@ namespace Rag.Services.Backend.Application.Queries.AskQuestion
             var hits = await _vectorStore.SearchAsync(qVec);
             var context = string.Join("\n\n", hits.Select(h => h.Text));
 
-            // Get answer with conversation history
-            string answer = await _ollamaService.AskWithHistoryAsync(context, history, request.Question);
-
-            // Add user question and assistant answer to conversation history
+            // Add user question to conversation history first
             await _conversationService.AddMessageAsync(conversationId, "user", request.Question);
-            await _conversationService.AddMessageAsync(conversationId, "assistant", answer);
 
-            return new AskResponseDto
+            // Yield conversation ID as first message (prefixed with a marker)
+            yield return $"[CONVERSATION_ID]{conversationId}";
+
+            // Stream the answer
+            var fullAnswerBuilder = new StringBuilder();
+            await foreach (var token in _ollamaService.AskWithHistoryStreamAsync(context, history, request.Question, cancellationToken))
             {
-                Answer = answer,
-                ConversationId = conversationId
-            };
+                fullAnswerBuilder.Append(token);
+                yield return token;
+            }
+
+            // Add assistant answer to conversation history after streaming is complete
+            await _conversationService.AddMessageAsync(conversationId, "assistant", fullAnswerBuilder.ToString());
         }
     }
 }

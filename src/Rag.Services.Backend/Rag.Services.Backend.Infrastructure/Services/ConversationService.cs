@@ -4,25 +4,23 @@ using Rag.Services.Backend.Domain.Models;
 
 namespace Rag.Services.Backend.Infrastructure.Services
 {
-    public class ConversationService : IConversationService
+    public class ConversationService(IMemoryCache cache) : IConversationService
     {
-        private readonly IMemoryCache _cache;
+        private readonly IMemoryCache _cache = cache;
         private static readonly TimeSpan ConversationTimeout = TimeSpan.FromHours(1);
-
-        public ConversationService(IMemoryCache cache)
-        {
-            _cache = cache;
-        }
 
         public string CreateConversation()
         {
             var conversationId = Guid.NewGuid().ToString();
             var messages = new List<ConversationMessage>();
-            
-            _cache.Set(conversationId, messages, new MemoryCacheEntryOptions
-            {
-                SlidingExpiration = ConversationTimeout
-            });
+
+            _cache.Set(
+                conversationId,
+                messages,
+                new MemoryCacheEntryOptions
+                    {
+                        SlidingExpiration = ConversationTimeout
+                    });
 
             return conversationId;
         }
@@ -41,10 +39,13 @@ namespace Rag.Services.Backend.Infrastructure.Services
             });
 
             // Refresh sliding expiration
-            _cache.Set(conversationId, messages, new MemoryCacheEntryOptions
-            {
-                SlidingExpiration = ConversationTimeout
-            });
+            _cache.Set(
+                conversationId,
+                messages,
+                new MemoryCacheEntryOptions
+                    {
+                        SlidingExpiration = ConversationTimeout
+                    });
 
             return Task.CompletedTask;
         }
@@ -57,10 +58,13 @@ namespace Rag.Services.Backend.Infrastructure.Services
             }
 
             // Refresh sliding expiration
-            _cache.Set(conversationId, messages, new MemoryCacheEntryOptions
-            {
-                SlidingExpiration = ConversationTimeout
-            });
+            _cache.Set(
+                conversationId,
+                messages,
+                new MemoryCacheEntryOptions
+                    {
+                        SlidingExpiration = ConversationTimeout
+                    });
 
             return Task.FromResult(messages);
         }
