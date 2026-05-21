@@ -1,12 +1,12 @@
 using System.Text.Json.Serialization;
-using Rag.Services.Backend.Api.Middleware;
+using NLog.Web;
 using Rag.Services.Backend.Api.Endpoints;
+using Rag.Services.Backend.Api.Middleware;
 using Rag.Services.Backend.Application.Mappings;
 using Rag.Services.Backend.Infrastructure.DependencyContainer;
 using Rag.Services.Backend.Infrastructure.Extensions.KeycloakAuth;
 using Rag.Services.Backend.Infrastructure.Extensions.MediatR;
 using Rag.Services.Backend.Infrastructure.Extensions.Swagger;
-using NLog.Web;
 
 // Create builder
 var builder = WebApplication.CreateBuilder(args);
@@ -24,7 +24,15 @@ builder.Host.UseNLog(new NLogAspNetCoreOptions() { RemoveLoggerFactoryFilter = f
 
 // Add services
 builder.Services
-    .AddCors()
+    .AddCors(options =>
+    {
+        options.AddDefaultPolicy(policy =>
+        {
+            policy.AllowAnyOrigin()
+                .AllowAnyMethod()
+                .AllowAnyHeader();
+        });
+    })
     .AddEndpointsApiExplorer()
     .AddSwagger()
     .AddKeycloakAuthorization(builder.Configuration)

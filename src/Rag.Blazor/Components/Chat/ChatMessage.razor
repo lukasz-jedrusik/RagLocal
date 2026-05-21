@@ -1,0 +1,15 @@
+@using Rag.Blazor.Models
+
+<div class="message-row @(Message.IsUser ? "user" : "bot")">
+    <div class="message-content">
+        <div class="message-bubble">
+            @Message.Text
+        </div>
+    </div>
+</div>
+
+@code {
+
+    [Parameter]
+    public ChatMessageModel Message { get; set; } = default!;
+}

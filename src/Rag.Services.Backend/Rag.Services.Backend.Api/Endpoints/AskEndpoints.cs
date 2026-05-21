@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
-using Microsoft.AspNetCore.Mvc;
 using MediatR;
+using Microsoft.AspNetCore.Mvc;
 using Rag.Services.Backend.Application.DataTransferObjects;
 using Rag.Services.Backend.Application.Queries.AskQuestion;
 using Rag.Services.Backend.Application.Queries.AskQuestionStream;
@@ -47,9 +47,9 @@ namespace Rag.Services.Backend.Api.Endpoints
                         ConversationId = askRequestDto.ConversationId
                     };
 
-                    context.Response.Headers.ContentType = "text/event-stream";
+                    context.Response.ContentType = "text/event-stream";
                     context.Response.Headers.CacheControl = "no-cache";
-                    context.Response.Headers.Connection = "keep-alive";
+                    // Note: Connection header is invalid for HTTP/2 and HTTP/3 - removed
 
                     await foreach (var token in mediator.CreateStream(query, cancellationToken))
                     {

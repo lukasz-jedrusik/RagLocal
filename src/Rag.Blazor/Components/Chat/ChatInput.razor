@@ -1,0 +1,43 @@
+<div class="chat-input-container">
+
+    <textarea class="chat-input"
+              @bind="Input"
+              @bind:event="oninput"
+              @onkeydown="HandleKeyDown"
+              placeholder="Message Knowledge Assistant..."
+              rows="1"></textarea>
+
+    <button class="send-button"
+            @onclick="SendMessage"
+            disabled="@(string.IsNullOrWhiteSpace(Input))">
+        Send
+    </button>
+
+</div>
+
+@code {
+
+    [Parameter]
+    public EventCallback<string> OnSend { get; set; }
+
+    private string Input { get; set; } = string.Empty;
+
+    private async Task SendMessage()
+    {
+        if (string.IsNullOrWhiteSpace(Input))
+            return;
+
+        var message = Input;
+        Input = string.Empty;
+
+        await OnSend.InvokeAsync(message);
+    }
+
+    private async Task HandleKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && !e.ShiftKey)
+        {
+            await SendMessage();
+        }
+    }
+}

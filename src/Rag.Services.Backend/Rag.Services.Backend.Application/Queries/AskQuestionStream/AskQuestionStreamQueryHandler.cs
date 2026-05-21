@@ -45,9 +45,9 @@ namespace Rag.Services.Backend.Application.Queries.AskQuestionStream
             }
 
             // Get embeddings and search for context
-            var qVec = await _ollamaService.CreateAsync(request.Question);
-            var hits = await _vectorStore.SearchAsync(qVec);
-            var context = string.Join("\n\n", hits.Select(h => h.Text));
+            float[] qVec = await _ollamaService.CreateAsync(request.Question);
+            List<SearchResult> hits = await _vectorStore.SearchAsync(qVec);
+            string context = string.Join("\n\n", hits.Select(static h => h.Text));
 
             // Add user question to conversation history first
             await _conversationService.AddMessageAsync(conversationId, "user", request.Question);
@@ -56,10 +56,10 @@ namespace Rag.Services.Backend.Application.Queries.AskQuestionStream
             yield return $"[CONVERSATION_ID]{conversationId}";
 
             // Stream the answer
-            var fullAnswerBuilder = new StringBuilder();
-            await foreach (var token in _ollamaService.AskWithHistoryStreamAsync(context, history, request.Question, cancellationToken))
+            StringBuilder fullAnswerBuilder = new StringBuilder();
+            await foreach (string token in _ollamaService.AskWithHistoryStreamAsync(context, history, request.Question, cancellationToken))
             {
-                fullAnswerBuilder.Append(token);
+                _ = fullAnswerBuilder.Append(token);
                 yield return token;
             }
 

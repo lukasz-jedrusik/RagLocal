@@ -1,0 +1,19 @@
+<div class="sidebar">
+
+    <div class="sidebar-header">
+        <button class="new-chat-btn" @onclick="OnNewChat">
+            <span>✚</span>
+            <span>New chat</span>
+        </button>
+    </div>
+
+    <div class="sidebar-content">
+        <!-- Chat history will go here -->
+    </div>
+
+</div>
+
+@code {
+    [Parameter]
+    public EventCallback OnNewChat { get; set; }
+}

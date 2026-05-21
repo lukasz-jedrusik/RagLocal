@@ -1,0 +1,126 @@
+@using Rag.Blazor.Models
+@using Rag.Blazor.State
+@inject StreamingClient StreamingClient
+@inject ChatState ChatState
+
+<div class="chat-layout">
+
+    <ChatSidebar OnNewChat="HandleNewChat" />
+
+    <div class="chat-main">
+
+        @if (ChatState.Messages.Count == 0)
+        {
+            <div class="chat-input-wrapper centered">
+                <div class="welcome-text">Knowledge Assistant</div>
+                <ChatInput OnSend="HandleSend" />
+            </div>
+        }
+        else
+        {
+            <div class="chat-container">
+                <div class="chat-messages">
+                    @foreach (var msg in ChatState.Messages)
+                    {
+                        <ChatMessage Message="msg" />
+                    }
+
+                    @if (ChatState.IsLoading)
+                    {
+                        <div class="typing-indicator">
+                            <span>AI is typing</span>
+                            <span class="typing-dots">
+                                <span class="dot">.</span>
+                                <span class="dot">.</span>
+                                <span class="dot">.</span>
+                            </span>
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <div class="chat-input-wrapper">
+                <div style="max-width: 768px; margin: 0 auto; width: 100%;">
+                    <ChatInput OnSend="HandleSend" />
+                </div>
+            </div>
+        }
+
+    </div>
+
+</div>
+
+@code {
+
+    private static bool IsPunctuation(char c)
+    {
+        return c is '.' or ',' or '!' or '?' or ';' or ':' or ' ';
+    }
+
+    private void HandleNewChat()
+    {
+        ChatState.Messages.Clear();
+        ChatState.ConversationId = null;
+        ChatState.IsLoading = false;
+        StateHasChanged();
+    }
+
+    private async Task HandleSend(string text)
+    {
+        if (string.IsNullOrWhiteSpace(text))
+            return;
+
+        ChatState.AddUserMessage(text);
+
+        ChatState.IsLoading = true;
+
+        var botMessage = new ChatMessageModel
+        {
+            IsUser = false,
+            Text = ""
+        };
+
+        ChatState.Messages.Add(botMessage);
+
+        StateHasChanged();
+
+        try
+        {
+            await foreach (var chunk in StreamingClient.StreamAsync(
+                               text,
+                               ChatState.ConversationId))
+            {
+                if (chunk.IsConversationId)
+                {
+                    ChatState.ConversationId = chunk.ConversationId;
+                    continue;
+                }
+
+                // Dodaj token z spacją jeśli to nie pierwszy token i nie zaczyna się od znaku przestankowego
+                if (!string.IsNullOrEmpty(botMessage.Text) && 
+                    !string.IsNullOrEmpty(chunk.Content) &&
+                    !chunk.Content.StartsWith(" ") &&
+                    !IsPunctuation(botMessage.Text.LastOrDefault()))
+                {
+                    botMessage.Text += " ";
+                }
+                
+                botMessage.Text += chunk.Content;
+
+                StateHasChanged();
+                
+                // Małe opóźnienie dla lepszego efektu wizualnego
+                await Task.Delay(30);
+            }
+        }
+        catch (Exception ex)
+        {
+            botMessage.Text = $"Error: {ex.Message}";
+        }
+        finally
+        {
+            ChatState.IsLoading = false;
+            StateHasChanged();
+        }
+    }
+}
