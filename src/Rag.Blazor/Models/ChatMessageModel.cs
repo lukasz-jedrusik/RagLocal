@@ -1,11 +1,9 @@
-namespace Rag.Blazor.Models
-{
-    public class ChatMessageModel
-    {
-        public string Text { get; set; } = string.Empty;
-        public bool IsUser { get; set; }
+namespace Rag.Blazor.Models;
 
-        public DateTime Timestamp { get; set; }
-            = DateTime.UtcNow;
-    }
+public class ChatMessageModel
+{
+    public string Text { get; set; } = string.Empty;
+    public bool IsUser { get; set; }
+    public DateTime Timestamp { get; set; } = DateTime.UtcNow;
+    public List<Source>? Sources { get; set; }
 }

@@ -1,10 +1,11 @@
-namespace Rag.Blazor.Models
+namespace Rag.Blazor.Models;
+
+public class StreamChunk
 {
-    public class StreamChunk
-    {
-        public string Content { get; set; } = string.Empty;
-        public Guid? ConversationId { get; set; }
-        public bool IsConversationId { get; set; }
-        public bool IsCompleted { get; set; }
-    }
+    public string Content { get; set; } = string.Empty;
+    public Guid? ConversationId { get; set; }
+    public bool IsConversationId { get; set; }
+    public bool IsCompleted { get; set; }
+    public bool IsCitations { get; set; }
+    public List<Source>? Sources { get; set; }
 }

@@ -5,6 +5,27 @@
         <div class="message-bubble">
             @Message.Text
         </div>
+        
+        @if (!Message.IsUser && Message.Sources != null && Message.Sources.Any())
+        {
+            <div class="citations">
+                <div class="citations-header">Sources:</div>
+                @foreach (var source in Message.Sources)
+                {
+                    <div class="citation-item">
+                        <div class="citation-title">[@source.Id] @source.Title</div>
+                        @if (!string.IsNullOrEmpty(source.Excerpt))
+                        {
+                            <div class="citation-excerpt">@source.Excerpt</div>
+                        }
+                        @if (source.Score > 0)
+                        {
+                            <div class="citation-score">Relevance: @source.Score.ToString("F2")</div>
+                        }
+                    </div>
+                }
+            </div>
+        }
     </div>
 </div>
 

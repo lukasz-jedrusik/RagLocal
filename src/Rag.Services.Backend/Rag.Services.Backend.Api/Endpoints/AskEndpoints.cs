@@ -44,23 +44,17 @@ namespace Rag.Services.Backend.Api.Endpoints
                     var query = new AskQuestionStreamQuery
                     {
                         Question = askRequestDto.Question,
-                        ConversationId = askRequestDto.ConversationId
+                        ConversationId = askRequestDto.ConversationId,
+                        Response = context.Response,
+                        CancellationToken = cancellationToken
                     };
 
-                    context.Response.ContentType = "text/event-stream";
-                    context.Response.Headers.CacheControl = "no-cache";
-                    // Note: Connection header is invalid for HTTP/2 and HTTP/3 - removed
-
-                    await foreach (var token in mediator.CreateStream(query, cancellationToken))
-                    {
-                        await context.Response.WriteAsync($"data: {token}\n\n", cancellationToken);
-                        await context.Response.Body.FlushAsync(cancellationToken);
-                    }
+                    await mediator.Send(query, cancellationToken);
                 })
                 .WithName("AskQuestionStream")
                 .WithTags("Questions")
                 .WithSummary("Ask a question with streaming response")
-                .WithDescription("Submit a question and get an AI-generated answer streamed token-by-token with conversation context")
+                .WithDescription("Submit a question and get an AI-generated answer streamed as Server-Sent Events with metadata, tokens, and citations")
                 .Produces(StatusCodes.Status200OK, contentType: "text/event-stream")
                 .Produces(StatusCodes.Status400BadRequest);
         }

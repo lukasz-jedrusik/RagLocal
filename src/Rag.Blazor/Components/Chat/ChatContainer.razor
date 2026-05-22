@@ -1,7 +1,10 @@
 @using Rag.Blazor.Models
 @using Rag.Blazor.State
+@using Microsoft.JSInterop
 @inject StreamingClient StreamingClient
 @inject ChatState ChatState
+@inject IJSRuntime JSRuntime
+@inject UiSettings UiSettings
 
 <div class="chat-layout">
 
@@ -18,7 +21,7 @@
         }
         else
         {
-            <div class="chat-container">
+            <div class="chat-container" id="chatContainer">
                 <div class="chat-messages">
                     @foreach (var msg in ChatState.Messages)
                     {
@@ -51,6 +54,18 @@
 </div>
 
 @code {
+    private async Task ScrollToBottom()
+    {
+        try
+        {
+            await Task.Delay(UiSettings.ScrollDelay);
+            await JSRuntime.InvokeVoidAsync("scrollToBottom");
+        }
+        catch
+        {
+            // Ignore errors if element not yet rendered
+        }
+    }
 
     private static bool IsPunctuation(char c)
     {
@@ -83,6 +98,7 @@
         ChatState.Messages.Add(botMessage);
 
         StateHasChanged();
+        await ScrollToBottom();
 
         try
         {
@@ -96,21 +112,28 @@
                     continue;
                 }
 
-                // Dodaj token z spacją jeśli to nie pierwszy token i nie zaczyna się od znaku przestankowego
-                if (!string.IsNullOrEmpty(botMessage.Text) && 
-                    !string.IsNullOrEmpty(chunk.Content) &&
-                    !chunk.Content.StartsWith(" ") &&
-                    !IsPunctuation(botMessage.Text.LastOrDefault()))
+                if (chunk.IsCitations)
                 {
-                    botMessage.Text += " ";
+                    botMessage.Sources = chunk.Sources;
+                    StateHasChanged();
+                    continue;
                 }
-                
-                botMessage.Text += chunk.Content;
 
-                StateHasChanged();
-                
-                // Małe opóźnienie dla lepszego efektu wizualnego
-                await Task.Delay(30);
+                if (chunk.IsCompleted)
+                {
+                    break;
+                }
+
+                // Dodaj token
+                if (!string.IsNullOrEmpty(chunk.Content))
+                {
+                    botMessage.Text += chunk.Content;
+                    StateHasChanged();
+                    
+                    // Opóźnienie dla lepszego efektu wizualnego
+                    await Task.Delay(UiSettings.StreamingDelay);
+                    await ScrollToBottom();
+                }
             }
         }
         catch (Exception ex)
