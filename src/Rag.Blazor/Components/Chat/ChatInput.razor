@@ -1,15 +1,20 @@
+@using Rag.Blazor.Services
+@inject AuthService AuthService
+
 <div class="chat-input-container">
 
     <textarea class="chat-input"
               @bind="Input"
               @bind:event="oninput"
               @onkeydown="HandleKeyDown"
-              placeholder="Message Knowledge Assistant..."
-              rows="1"></textarea>
+              placeholder="@GetPlaceholder()"
+              rows="1"
+              disabled="@(!AuthService.IsAuthenticated)"></textarea>
 
     <button class="send-button"
             @onclick="SendMessage"
-            disabled="@(string.IsNullOrWhiteSpace(Input))">
+            disabled="@(!AuthService.IsAuthenticated || string.IsNullOrWhiteSpace(Input))"
+            title="@GetButtonTitle()">
         Send
     </button>
 
@@ -22,9 +27,26 @@
 
     private string Input { get; set; } = string.Empty;
 
+    private string GetPlaceholder()
+    {
+        return AuthService.IsAuthenticated 
+            ? "Message Knowledge Assistant..." 
+            : "Please sign in to chat...";
+    }
+
+    private string GetButtonTitle()
+    {
+        if (!AuthService.IsAuthenticated)
+            return "Please sign in to send messages";
+        
+        return string.IsNullOrWhiteSpace(Input) 
+            ? "Type a message to send" 
+            : "Send message";
+    }
+
     private async Task SendMessage()
     {
-        if (string.IsNullOrWhiteSpace(Input))
+        if (!AuthService.IsAuthenticated || string.IsNullOrWhiteSpace(Input))
             return;
 
         var message = Input;
@@ -35,6 +57,9 @@
 
     private async Task HandleKeyDown(KeyboardEventArgs e)
     {
+        if (!AuthService.IsAuthenticated)
+            return;
+
         if (e.Key == "Enter" && !e.ShiftKey)
         {
             await SendMessage();

@@ -1,15 +1,17 @@
 namespace Rag.Services.Backend.Domain.Exceptions
 {
-    public abstract class BackendException : Exception
+    public class BackendException : Exception
     {
-        protected BackendException() {}
+        public BackendException()
+        {
+        }
 
-        protected BackendException(string message)
+        public BackendException(string message)
             : base(message)
         {
         }
 
-        protected BackendException(string message, Exception innerException)
+        public BackendException(string message, Exception innerException)
             : base(message, innerException)
         {
         }

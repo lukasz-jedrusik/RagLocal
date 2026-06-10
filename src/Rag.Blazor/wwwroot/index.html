@@ -13,6 +13,8 @@
     <link rel="icon" type="image/png" href="favicon.png" />
     <link href="Rag.Blazor.styles.css" rel="stylesheet" />
     <script type="importmap"></script>
+    <!-- Google Sign-In -->
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 
 <body>
@@ -34,6 +36,84 @@
             const chatContainer = document.getElementById('chatContainer');
             if (chatContainer) {
                 chatContainer.scrollTop = chatContainer.scrollHeight;
+            }
+        };
+
+        // Google Sign-In configuration
+        let googleClientId = '';
+        
+        window.setGoogleClientId = function(clientId) {
+            googleClientId = clientId;
+        };
+
+        // Helper function to decode base64 with UTF-8 support
+        function base64UrlDecode(str) {
+            // Replace URL-safe characters
+            str = str.replace(/-/g, '+').replace(/_/g, '/');
+            // Add padding
+            while (str.length % 4) {
+                str += '=';
+            }
+            // Decode base64 to UTF-8
+            const raw = atob(str);
+            const bytes = new Uint8Array(raw.length);
+            for (let i = 0; i < raw.length; i++) {
+                bytes[i] = raw.charCodeAt(i);
+            }
+            return new TextDecoder('utf-8').decode(bytes);
+        }
+
+        window.initGoogleSignIn = function(dotNetHelper) {
+            if (!googleClientId) {
+                console.error('Google Client ID not set');
+                return;
+            }
+
+            google.accounts.id.initialize({
+                client_id: googleClientId,
+                callback: async function(response) {
+                    try {
+                        // Dekoduj JWT token aby wyciągnąć informacje o użytkowniku (z obsługą UTF-8)
+                        const base64Payload = response.credential.split('.')[1];
+                        const decodedPayload = base64UrlDecode(base64Payload);
+                        const payload = JSON.parse(decodedPayload);
+                        
+                        const userInfo = {
+                            googleId: payload.sub,
+                            email: payload.email,
+                            name: payload.name,
+                            pictureUrl: payload.picture,
+                            idToken: response.credential
+                        };
+                        
+                        await dotNetHelper.invokeMethodAsync('OnGoogleSignIn', userInfo);
+                    } catch (error) {
+                        console.error('Error processing Google Sign-In:', error);
+                    }
+                }
+            });
+
+            // Renderuj przycisk w centrum ekranu
+            const buttonContainer = document.getElementById('google-signin-button-center');
+            if (buttonContainer) {
+                google.accounts.id.renderButton(
+                    buttonContainer,
+                    { 
+                        theme: 'outline', 
+                        size: 'large',
+                        text: 'signin_with',
+                        width: 280
+                    }
+                );
+            }
+
+            // Opcjonalnie: auto-prompt
+            google.accounts.id.prompt();
+        };
+
+        window.googleSignOut = function() {
+            if (window.google && google.accounts && google.accounts.id) {
+                google.accounts.id.disableAutoSelect();
             }
         };
     </script>

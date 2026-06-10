@@ -8,9 +8,8 @@ namespace Rag.Services.Backend.Infrastructure.Extensions.EfCore
     {
         public static IServiceCollection AddEfCore(this IServiceCollection services, IConfiguration configuration)
         {
-            services.AddDbContext<DataContext>(x =>
-                x.UseSqlServer(configuration["CPCLEANAPI_CONNECTION_STRING"]))
-                ;
+            _ = services.AddDbContext<DataContext>(options =>
+                options.UseSqlServer(configuration.GetConnectionString("DefaultConnection")));
 
             return services;
         }

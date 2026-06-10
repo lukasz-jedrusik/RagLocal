@@ -1,10 +1,13 @@
 @using Rag.Blazor.Models
 @using Rag.Blazor.State
+@using Rag.Blazor.Services
 @using Microsoft.JSInterop
 @inject StreamingClient StreamingClient
 @inject ChatState ChatState
+@inject AuthService AuthService
 @inject IJSRuntime JSRuntime
 @inject UiSettings UiSettings
+@implements IDisposable
 
 <div class="chat-layout">
 
@@ -12,10 +15,20 @@
 
     <div class="chat-main">
 
-        @if (ChatState.Messages.Count == 0)
+        @if (!AuthService.IsAuthenticated)
+        {
+            <!-- Ekran logowania w centrum -->
+            <div class="auth-center">
+                <div class="auth-center-content">
+                    <p class="auth-description">Sign in with Google to start chatting and save your conversation history</p>
+                    <div id="google-signin-button-center" class="google-signin-center"></div>
+                </div>
+            </div>
+        }
+        else if (ChatState.Messages.Count == 0)
         {
             <div class="chat-input-wrapper centered">
-                <div class="welcome-text">Knowledge Assistant</div>
+                <div class="welcome-text">Local Knowledge Assistant</div>
                 <ChatInput OnSend="HandleSend" />
             </div>
         }
@@ -54,6 +67,28 @@
 </div>
 
 @code {
+    protected override void OnInitialized()
+    {
+        AuthService.OnAuthStateChanged += OnAuthStateChanged;
+        ChatState.OnStateChanged += OnChatStateChanged;
+    }
+
+    private void OnAuthStateChanged()
+    {
+        StateHasChanged();
+    }
+
+    private async void OnChatStateChanged()
+    {
+        StateHasChanged();
+        await ScrollToBottom();
+    }
+
+    public void Dispose()
+    {
+        AuthService.OnAuthStateChanged -= OnAuthStateChanged;
+        ChatState.OnStateChanged -= OnChatStateChanged;
+    }
     private async Task ScrollToBottom()
     {
         try
@@ -144,6 +179,9 @@
         {
             ChatState.IsLoading = false;
             StateHasChanged();
+            
+            // Powiadom o aktualizacji konwersacji (dla odświeżenia listy)
+            ChatState.NotifyConversationUpdated();
         }
     }
 }

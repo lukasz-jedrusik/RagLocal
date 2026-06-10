@@ -4,7 +4,8 @@ using Rag.Services.Backend.Api.Endpoints;
 using Rag.Services.Backend.Api.Middleware;
 using Rag.Services.Backend.Application.Mappings;
 using Rag.Services.Backend.Infrastructure.DependencyContainer;
-using Rag.Services.Backend.Infrastructure.Extensions.KeycloakAuth;
+using Rag.Services.Backend.Infrastructure.Extensions.EfCore;
+using Rag.Services.Backend.Infrastructure.Extensions.GmailAuth;
 using Rag.Services.Backend.Infrastructure.Extensions.MediatR;
 using Rag.Services.Backend.Infrastructure.Extensions.Swagger;
 
@@ -33,11 +34,15 @@ builder.Services
                 .AllowAnyHeader();
         });
     })
+    .AddEfCore(builder.Configuration)
     .AddEndpointsApiExplorer()
     .AddSwagger()
-    .AddKeycloakAuthorization(builder.Configuration)
+    .AddGmailAuthorization(builder.Configuration)
     .AddMediatR()
-    .AddApplication();
+    .AddApplication(builder.Configuration);
+
+// Add authentication and authorization
+// Authentication is configured in GmailAuth extension
 
 // Configure Mapster
 MapsterConfig.Configure();
@@ -58,8 +63,11 @@ if (app.Environment.IsDevelopment())
 // Use Cors, Middleware, https redirection, authorization in pipieline
 app.UseCors()
     .UseMiddleware<ErrorHandlerMiddleware>()
-    .UseHttpsRedirection()
+    .UseAuthentication()
     .UseAuthorization();
+
+// Use auto migrations applying
+app.ApplyMigrations();
 
 // Use controllers in pipieline
 app.MapControllers();

@@ -17,10 +17,20 @@ builder.Services.AddSingleton(apiSettings);
 var uiSettings = builder.Configuration.GetSection("UI").Get<UiSettings>() ?? new UiSettings();
 builder.Services.AddSingleton(uiSettings);
 
+// Configure Google settings from appsettings.json
+var googleSettings = builder.Configuration.GetSection("Google").Get<GoogleSettings>() ?? new GoogleSettings();
+builder.Services.AddSingleton(googleSettings);
+
+// Register AuthService
+builder.Services.AddScoped<AuthService>();
+
+// Register AuthenticatedHttpClient
+builder.Services.AddScoped<AuthenticatedHttpClient>();
+
 builder.Services.AddScoped(sp =>
 {
-    var client = new HttpClient();
-    return client;
+    var authenticatedClient = sp.GetRequiredService<AuthenticatedHttpClient>();
+    return authenticatedClient.HttpClient;
 });
 
 builder.Services.AddScoped<StreamingClient>();

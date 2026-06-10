@@ -55,3 +55,9 @@ nunit-*.xml
 
 # Qdrnat storage
 docker/qdrant-data
+
+# secrects
+client_secret_*.json
+
+# SqlServer Data
+*/sqlserver/data/*

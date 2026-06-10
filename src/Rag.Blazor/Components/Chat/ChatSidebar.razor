@@ -1,3 +1,14 @@
+@using Rag.Blazor.Models
+@using Rag.Blazor.Services
+@using Rag.Blazor.State
+@using Microsoft.JSInterop
+@inject AuthService AuthService
+@inject ChatApiClient ChatApiClient
+@inject ChatState ChatState
+@inject IJSRuntime JSRuntime
+@inject GoogleSettings GoogleSettings
+@implements IDisposable
+
 <div class="sidebar">
 
     <div class="sidebar-header">
@@ -5,14 +16,73 @@
             <img src="icon-192.png" alt="Blazor Logo" class="blazor-logo" />
             <h1 class="sidebar-title">Local Knowledge Assistant</h1>
         </div>
-        <button class="new-chat-btn" @onclick="OnNewChat">
-            <span>✚</span>
-            <span>New chat</span>
-        </button>
+
+        @if (AuthService.IsAuthenticated)
+        {
+            <button class="new-chat-btn" @onclick="OnNewChat">
+                <span>✚</span>
+                <span>New chat</span>
+            </button>
+        }
     </div>
 
     <div class="sidebar-content">
-        <!-- Chat history will go here -->
+        @if (!AuthService.IsAuthenticated)
+        {
+            <div class="auth-section">
+                <p style="text-align: center; color: #666; font-size: 14px;">Please sign in to access your conversations</p>
+            </div>
+        }
+        else
+        {
+            <div class="user-info">
+                @if (!string.IsNullOrEmpty(AuthService.CurrentUser?.PictureUrl))
+                {
+                    <img src="@AuthService.CurrentUser.PictureUrl" alt="User" class="user-avatar" />
+                }
+                <div class="user-details">
+                    <div class="user-name">@AuthService.CurrentUser?.Name</div>
+                    <div class="user-email">@AuthService.CurrentUser?.Email</div>
+                </div>
+                <button class="sign-out-btn" @onclick="SignOut" title="Sign out">Sign out</button>
+            </div>
+
+            <div class="conversations-list">
+                @if (isLoadingConversations)
+                {
+                    <div class="loading-indicator">Loading conversations...</div>
+                }
+                else if (conversations.Count == 0)
+                {
+                    <div class="no-conversations">No conversations yet</div>
+                }
+                else
+                {
+                    @foreach (var conv in conversations)
+                    {
+                        var conversationId = conv.ConversationId;
+                        var title = conv.Title;
+                        var updatedAt = conv.UpdatedAt;
+                        var messageCount = conv.MessageCount;
+                        
+                        <div class="conversation-item @(conversationId == ChatState.ConversationId ? "active" : "")"
+                             @onclick="async () => await LoadConversation(conversationId)">
+                            <div class="conversation-title">@title</div>
+                            <div class="conversation-meta">
+                                <span class="conversation-date">@FormatDate(updatedAt)</span>
+                                <span class="conversation-count">@messageCount msg</span>
+                            </div>
+                            <button class="delete-conversation-btn" 
+                                    @onclick:stopPropagation="true"
+                                    @onclick="async () => await DeleteConversation(conversationId)"
+                                    title="Delete conversation">
+                                🗑
+                            </button>
+                        </div>
+                    }
+                }
+            </div>
+        }
     </div>
 
 </div>
@@ -20,4 +90,163 @@
 @code {
     [Parameter]
     public EventCallback OnNewChat { get; set; }
+
+    private List<ConversationDto> conversations = new();
+    private bool isLoadingConversations = false;
+    private DotNetObjectReference<ChatSidebar>? dotNetHelper;
+
+    protected override async Task OnInitializedAsync()
+    {
+        AuthService.OnAuthStateChanged += OnAuthStateChanged;
+        ChatState.OnStateChanged += StateHasChanged;
+        ChatState.OnConversationUpdated += OnConversationUpdated;
+
+        // Inicjalizuj AuthService (sprawdź czy token jest w sessionStorage)
+        await AuthService.InitializeAsync();
+
+        if (AuthService.IsAuthenticated)
+        {
+            await LoadConversations();
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            dotNetHelper = DotNetObjectReference.Create(this);
+            
+            // Ustaw Google Client ID i zainicjalizuj Google Sign-In
+            await JSRuntime.InvokeVoidAsync("setGoogleClientId", GoogleSettings.ClientId);
+            await JSRuntime.InvokeVoidAsync("initGoogleSignIn", dotNetHelper);
+        }
+    }
+
+    [JSInvokable]
+    public async Task OnGoogleSignIn(UserInfo userInfo)
+    {
+        await AuthService.SignInAsync(userInfo);
+        await LoadConversations();
+        StateHasChanged();
+    }
+
+    private async void OnAuthStateChanged()
+    {
+        if (AuthService.IsAuthenticated)
+        {
+            await LoadConversations();
+        }
+        else
+        {
+            conversations.Clear();
+        }
+        StateHasChanged();
+    }
+
+    private async void OnConversationUpdated()
+    {
+        if (AuthService.IsAuthenticated)
+        {
+            await LoadConversations();
+        }
+    }
+
+    private async Task LoadConversations()
+    {
+        isLoadingConversations = true;
+        StateHasChanged();
+
+        try
+        {
+            conversations = await ChatApiClient.GetConversationsAsync();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading conversations: {ex.Message}");
+            conversations = new();
+        }
+        finally
+        {
+            isLoadingConversations = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task LoadConversation(Guid conversationId)
+    {
+        Console.WriteLine($"Loading conversation: {conversationId}");
+        try
+        {
+            var detail = await ChatApiClient.GetConversationDetailAsync(conversationId);
+            if (detail != null)
+            {
+                Console.WriteLine($"Loaded {detail.Messages.Count} messages for conversation {conversationId}");
+                ChatState.LoadConversation(detail);
+                StateHasChanged();
+            }
+            else
+            {
+                Console.WriteLine($"Conversation detail is null for {conversationId}");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading conversation: {ex.Message}");
+        }
+    }
+
+    private async Task DeleteConversation(Guid conversationId)
+    {
+        if (!await JSRuntime.InvokeAsync<bool>("confirm", "Are you sure you want to delete this conversation?"))
+            return;
+
+        try
+        {
+            var success = await ChatApiClient.DeleteConversationAsync(conversationId);
+            if (success)
+            {
+                conversations.RemoveAll(c => c.ConversationId == conversationId);
+                
+                // Jeśli usunięta konwersacja jest obecnie aktywna, wyczyść czat
+                if (ChatState.ConversationId == conversationId)
+                {
+                    ChatState.ClearConversation();
+                }
+                
+                StateHasChanged();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error deleting conversation: {ex.Message}");
+        }
+    }
+
+    private async Task SignOut()
+    {
+        await AuthService.SignOutAsync();
+        ChatState.ClearConversation();
+        StateHasChanged();
+    }
+
+    private string FormatDate(DateTime date)
+    {
+        var now = DateTime.Now;
+        var diff = now - date;
+
+        if (diff.TotalMinutes < 1) return "just now";
+        if (diff.TotalMinutes < 60) return $"{(int)diff.TotalMinutes}m ago";
+        if (diff.TotalHours < 24) return $"{(int)diff.TotalHours}h ago";
+        if (diff.TotalDays < 7) return $"{(int)diff.TotalDays}d ago";
+        
+        return date.ToString("MMM d");
+    }
+
+    public void Dispose()
+    {
+        AuthService.OnAuthStateChanged -= OnAuthStateChanged;
+        ChatState.OnStateChanged -= StateHasChanged;
+        ChatState.OnConversationUpdated -= OnConversationUpdated;
+        dotNetHelper?.Dispose();
+    }
 }

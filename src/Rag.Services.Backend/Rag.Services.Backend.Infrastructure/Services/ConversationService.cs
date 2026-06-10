@@ -12,6 +12,11 @@ namespace Rag.Services.Backend.Infrastructure.Services
         public string CreateConversation()
         {
             var conversationId = Guid.NewGuid().ToString();
+            return CreateConversation(conversationId);
+        }
+
+        public string CreateConversation(string conversationId)
+        {
             var messages = new List<ConversationMessage>();
 
             _cache.Set(
@@ -28,9 +33,7 @@ namespace Rag.Services.Backend.Infrastructure.Services
         public Task AddMessageAsync(string conversationId, string role, string content)
         {
             if (!_cache.TryGetValue(conversationId, out object messagesObj) || messagesObj is not List<ConversationMessage> messages)
-            {
                 throw new KeyNotFoundException($"Conversation with ID '{conversationId}' not found.");
-            }
 
             messages.Add(new ConversationMessage
             {
@@ -53,9 +56,7 @@ namespace Rag.Services.Backend.Infrastructure.Services
         public Task<List<ConversationMessage>> GetHistoryAsync(string conversationId)
         {
             if (!_cache.TryGetValue(conversationId, out object messagesObj) || messagesObj is not List<ConversationMessage> messages)
-            {
                 throw new KeyNotFoundException($"Conversation with ID '{conversationId}' not found.");
-            }
 
             // Refresh sliding expiration
             _cache.Set(

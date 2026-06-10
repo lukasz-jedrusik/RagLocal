@@ -6,6 +6,7 @@ namespace Rag.Services.Backend.Api.Endpoints
         {
             app.AddAskEndpoints();
             app.AddIngestEndpoints();
+            app.AddConversationEndpoints();
         }
     }
 }
